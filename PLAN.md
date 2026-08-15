@@ -1,7 +1,7 @@
 # Night-Shift Scheduling — Solution Plan
 
 **Team:** 3 people · **Window:** 6:30pm–11pm, Sunday–Friday (fixed) · **Plan:** monthly, 2 of 3 on every day, rotation-based
-**Date:** 2026-08-14 · **Constraint:** $0/mo · **Status:** Decision-ready, pending 5 open questions
+**Date:** 2026-08-15 · **Constraint:** $0/mo · **Status:** Decision-ready, pending 2 open questions
 
 ---
 
@@ -15,8 +15,8 @@
 6. **Effort:** MVP ~12–14h · v1 ~+5–8h · total ~17–22h. The MVP is two evenings plus a polish session.
 7. **Maintenance:** near zero — no OS to patch, no hosting bill, deploys are `wrangler push`. This is the "boring, stable" choice.
 8. **De-risk first:** run the protocol manually for one real month (pinned monthly grid + reactions) before writing any code. Confirms the rotation rule and that all 3 of you actually use Telegram.
-9. **Confidence: 0.9.** Planning model now locked: availability in, mathematically equalized draft out (Q6 resolved). Remaining variance: Q1 (Telegram usage) and Q7 (swap semantics).
-10. **Build only after** confirming the remaining open questions in §7 (Q1, Q4, Q5, Q7) with the team. All other decisions below are contingent on those answers.
+9. **Confidence: 0.9.** Planning model now locked: availability in, mathematically equalized draft out (Q6 resolved). Remaining variance: Q1 (Telegram usage).
+10. **Build only after** confirming the remaining open questions in §7 (Q1, Q5) with the team. All other decisions below are contingent on those answers.
 
 ---
 
@@ -51,7 +51,7 @@ The MVP is a **shared, versioned plan in a Telegram group chat**:
 3. `Equalized draft out` — `/draft <month>` generates the month: 2 on per day, availability respected, **nights mathematically equalized** (target 2×days/3, ±1). Humans keep final say — /take and /off override the draft freely.
 4. `Claim and request cover` — `/take wed` fills an open slot; `/off wed` marks "I can't work Wed" and pings the group for cover. A day is never left open.
 5. `Everyone knows when the plan changes` — every take/cover posts a change message ("📅 Wed 19 Aug: Kai covers Elijah"), and mentions the affected person.
-6. `Nobody forgets a shift` — cron push daily at 18:10: "Tonight 18:30–23:00: Ana & Kai."
+6. `Nobody forgets a shift` — cron push daily at 18:10: "Tonight 18:30–23:00 (Fri 18:30–19:30): Ana & Kai."
 7. `Setup in under a minute` — bot added to a private group; each member sends `/whoami` once. No accounts, no passwords.
 
 ### 1.3 User stories (MVP)
@@ -70,10 +70,10 @@ The MVP is a **shared, versioned plan in a Telegram group chat**:
 - **A1:** All 3 use Telegram daily (Q1).
 - **A2:** **Resolved — exactly 2 people on every day, all 6 days.** One person is off each day.
 - **A3:** **Resolved — plan horizon is one month**, re-made at month end.
-- **A4:** The 18:30–23:00 window is fixed; only the *day* assignment varies (Q4 — still to confirm).
+- **A4:** **Resolved — Sun–Thu 18:30–23:00, Fri 18:30–19:30 (one hour).** Only the *day* assignment varies.
 - **A5:** Last-write-wins is acceptable for a 3-person team (Q5). No locking — the group chat resolves disputes socially.
 - **A6 (resolved):** Planning = availability in, mathematically equalized draft out. When everyone is free (the usual case) the draft degenerates to a clean rotation. The bot proposes, humans override via /take + /off — the team keeps final say.
-- **A7 (new):** Swaps happen as cover-requests (`/off` → someone `/take`s), not day-for-day exchanges (Q7 — to confirm).
+- **A7 (resolved):** Swaps happen as cover-requests (`/off` → someone `/take`s), not day-for-day exchanges (Q7). Day-for-day `/swap` remains optional v1.
 
 ---
 
@@ -155,6 +155,8 @@ CREATE TABLE slots (                       -- one row per coverage need per day
   date        TEXT NOT NULL,               -- 'YYYY-MM-DD' LOCAL date, no TZ math
   label       TEXT NOT NULL DEFAULT 'a',   -- 'a' | 'b' — the 2 duty slots
   member_id   INTEGER NOT NULL REFERENCES members(id),  -- must-cover-2: never NULL
+  start       TEXT NOT NULL DEFAULT '18:30',             -- Sun–Thu
+  end         TEXT NOT NULL DEFAULT '23:00',             -- Fri: '19:30'
   UNIQUE(date, label)
 );
 CREATE INDEX idx_slots_date ON slots(date);
@@ -202,7 +204,7 @@ Design notes:
 - Proposes: "Elijah wants to swap Wed ↔ Thu. Kai, confirm?" with inline ✅/❌ buttons. Both confirm → both slots flip; balance unchanged.
 
 **Reminders (cron)**
-- 18:10 daily: `🌙 Tonight 18:30–23:00: Ana & Kai.`
+- 18:10 daily: `🌙 Tonight 18:30–23:00: Ana & Kai.` (Fri uses `18:30–19:30`) 
 - 18:00 bump if a cover-request is still pending: `⚠️ Wed still needs cover — /take wed`.
 - Last working day of the month, 23:05: `🗓 Plan for <next month>? /draft <month> or fill it with /take`.
 
@@ -268,10 +270,10 @@ Acceptance: teammates with a calendar habit see the week in GCal without any man
 1. **Does everyone use Telegram daily?** (Decides everything. If no → fallback: GCal+Sheet.)
 2. ✅ **RESOLVED — exactly 2 people on every day, Sun–Fri (6 days).** One person is off each day.
 3. ✅ **RESOLVED — monthly plan**, re-made at month end.
-4. **Is the 18:30–23:00 window truly fixed, or does it vary by day?** (If it varies, slots gain a `start/end` column — still trivial.)
+4. ✅ **RESOLVED — Sun–Thu 18:30–23:00; Fri 18:30–19:30 (one hour).** Slots carry `start`/`end`; the Friday reminder copy differs.
 5. **Is last-write-wins acceptable?** (No conflict resolution — the group chat settles disputes socially. If you want formal approval on every change, that's +2h on v1.)
 6. ✅ **RESOLVED — availability in, mathematical equalization out.** Usually everyone's free; the draft equalizes nights (±1) and respects stated availability. Preferences = availability, nothing more.
-7. **NEW — how do swaps work?** Cover-request style (`/off` → someone `/take`s) is the recommended default. Day-for-day exchange (`/swap`) is optional v1. Confirm which matches how you actually trade nights.
+7. ✅ **RESOLVED — cover-request style** (`/off` → someone `/take`s). Day-for-day `/swap` stays optional v1.
 
 ---
 
@@ -290,3 +292,4 @@ Acceptance: teammates with a calendar habit see the week in GCal without any man
 ## Update log
 - 2026-08-14: Requirements refined — monthly plan, exactly 2 of 3 on duty every day (Sun–Fri), rotation-based. Plan updated throughout: flows (`/off` cover-requests replace `/drop`), data model (2 filled slots/day, balance line), roadmap (month pilot, `/draft` generator in v1), effort 15–20h, confidence 0.85.
 - 2026-08-14 (2nd): Rotation rule locked — preferences = availability, the draft equalizes nights mathematically (±1), usually a clean rotation. `/avail` added; `/draft` promoted from v1 to MVP; effort 17–22h; confidence 0.9.
+- 2026-08-15: Q4 resolved — Sun–Thu 18:30–23:00, Fri 18:30–19:30 (one hour); slots gain `start`/`end`. Q7 resolved — swaps are cover-request style; `/swap` stays optional v1. Pending: Q1 (Telegram usage), Q5 (last-write-wins).

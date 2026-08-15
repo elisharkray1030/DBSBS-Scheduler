@@ -3,7 +3,7 @@
 Night-shift scheduling for a 3-person team via a Telegram bot — the plan lives in the chat where the team already talks. No app, no server, no cost.
 
 - **Team:** 3 people
-- **Window:** 6:30pm–11pm, Sunday–Friday (fixed)
+- **Window:** 6:30pm–11pm, Sunday–Thursday; Friday 6:30–7:30pm
 - **Plan:** monthly, 2 of 3 on duty every day, rotation-based
 - **Cost:** $0/mo
 
@@ -28,7 +28,7 @@ TypeScript + [grammY](https://grammy.dev) on [Cloudflare Workers](https://worker
 
 ## Status
 
-Decision-ready solution plan, pending 5 open questions with the team. See [PLAN.md](PLAN.md) for the full plan, architecture, roadmap (MVP ~12–14h), and risks.
+Decision-ready solution plan, pending 2 open questions with the team. See [PLAN.md](PLAN.md) for the full plan, architecture, roadmap (MVP ~12–14h), and risks.
 
 Before any code is written, run the protocol manually for one real month (pinned monthly grid + reactions) to validate the rotation rule and that all 3 teammates actually use Telegram.
 
